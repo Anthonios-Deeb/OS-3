@@ -5,20 +5,6 @@
 
 using namespace std;
 
-// print the adjacency list
-void printAdjacencyList(vector<list<int>> adjList)
-{
-    cout << "The adjacency list is: " << endl;
-    for (size_t i = 1; i < adjList.size(); i++)
-    {
-        cout << "Node " << i << ": ";
-        for (auto it = adjList[i].begin(); it != adjList[i].end(); it++)
-        {
-            cout << *it << " ";
-        }
-        cout << endl;
-    }
-}
 
 int main()
 {
@@ -73,33 +59,11 @@ int main()
         }
     }
 
-   // printAdjacencyList(adjMatrix);
-
-    vector<list<int>> edges = getEdgeList(adjMatrix);
-
-    for (size_t i = 0; i < edges.size(); i++)
-    {
-        cout << "Edge " << i + 1 << ": ";
-        for (auto it = edges[i].begin(); it != edges[i].end(); it++)
-        {
-            cout << *it << " ";
-        }
-        cout << endl;
-    }
-
-    // Find the strongly connected components
-    vector<list<int>> scc = findSCC(n, adjMatrix);
-
-    cout << "The strongly connected components are: " << endl;
-    for (size_t i = 0; i < scc.size(); i++)
-    {
-        cout << "SCC " << i + 1 << ": ";
-        for (auto it = scc[i].begin(); it != scc[i].end(); it++)
-        {
-            cout << *it << " ";
-        }
-        cout << endl;
-    }
+    vectorList_kosaraju vlk = vectorList_kosaraju(adjMatrix);
+    
+    vlk.printEdgeList();
+    
+    vlk.printSCC();
 
     return 0;
 }

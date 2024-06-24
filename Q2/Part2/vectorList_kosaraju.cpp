@@ -61,7 +61,6 @@ vector<list<int>> findSCC(int n, vector<list<int>> &adjMat)
 
     for (size_t i = 0; i < a.size(); i++)
     {
-        //adj[a[i][0]].push_back(a[i][1]);
         adj[a[i].front()].push_back(a[i].back());
     }
 
