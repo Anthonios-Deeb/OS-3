@@ -1,15 +1,13 @@
-
 #include <vector>
-#include <list>
-#include <string>
-#include <algorithm>
 #include <netinet/in.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <sstream>
+#include <cstring>
 #include "vectorList_kosaraju.hpp"
+#include "packets.hpp"
 
 #define PORT 9034
 
@@ -55,73 +53,34 @@ vector<string> splitString(const string &input)
     return result;
 }
 
-void createGraph(int client_socket, int n, int m)
+
+void processClientRequest(op_Packet p, int client_socket)
 {
-    send(client_socket, "Creating graph...", 18, 0);
-
-    vector<list<int>> adjList(m);
-
-    for (int i = 0; i < m; i++)
+    if (p.operation == "newgraph")
     {
-        int u, v;
-        send(client_socket, "Enter edge (u, v): ", 20, 0);
-        recv(client_socket, &u, sizeof(u), 0);
-        recv(client_socket, &v, sizeof(v), 0);
-
-        // check if the edge is valid
-        list<int> temp = {u,v};
-        if (u < 1 || u > n || v < 1 || v > n || u == v)
+        string message = "Creating graph with " + to_string(p.v1) + " nodes and " + to_string(p.v2) + " edges";
+        cout << message << endl;
+        send(client_socket, message.c_str(), message.size() + 1, 0);
+        // receive edges packet
+        char buffer[1024] = {0};
+        if (recv(client_socket, buffer, 1024, 0) <= 0)
         {
-            send(client_socket, "Invalid edge\n", 14, 0);
-            i--;
-            continue;
+            perror("Read failed");
+            exit(EXIT_FAILURE);
         }
-        // check if the edge already exists
-        else if (find(adjList.begin(), adjList.end(), temp) != adjList.end())
-        {
-            send(client_socket, "Edge already exists\n", 21, 0);
-            i--;
-            continue;
-        }
+        edges_Packet edges;
+        deserializeEdgesPacket(buffer, edges);
 
-        adjList.push_back({u, v});
+        // create graph
+        graph = new vectorList_kosaraju(p.v1, p.v2, edges.edges);
+        send(client_socket, "Graph created", 15, 0);
+        cout << "Graph created" << endl;
     }
-
-    graph = new vectorList_kosaraju(n, m, adjList);
-}
-
-void processClientRequest(char *buffer, int client_socket)
-{
-    if (buffer == NULL)
-    {
-        cout << "Buffer is null" << endl;
-        return;
-    }
-
-    string str = buffer;
-    transform(str.begin(), str.end(), str.begin(), ::tolower);
-
-    vector<string> tokens = splitString(str);
-
-    if (tokens[0] == "newgraph" && tokens.size() == 3)
-    {
-        try
-        {
-            int n = stoi(tokens[1]);
-            int m = stoi(tokens[2]);
-            createGraph(client_socket, n, m);
-            send(client_socket, "Graph created", 14, 0);
-        }
-        catch (const std::exception &e)
-        {
-            send(client_socket, "Invalid input", 14, 0);
-        }
-    }
-    else if (tokens[0] == "kosaraju" && tokens.size() == 1)
+    else if (p.operation == "kosaraju")
     {
         if (graph == nullptr)
         {
-            send(client_socket, "There is no Graph !!", 21, 0);
+            send(client_socket, "Graph not created", 18, 0);
         }
         else
         {
@@ -138,28 +97,7 @@ void processClientRequest(char *buffer, int client_socket)
             send(client_socket, result.c_str(), result.size() + 1, 0);
         }
     }
-    else if (tokens[0] == "newedge" && tokens.size() == 3)
-    {
-        if (graph == nullptr)
-        {
-            send(client_socket, "There is no Graph !!", 21, 0);
-        }
-        else
-        {
-            try
-            {
-                int u = stoi(tokens[1]);
-                int v = stoi(tokens[2]);
-                graph->addEdge(u, v);
-                send(client_socket, "Edge added", 11, 0);
-            }
-            catch (const exception &e)
-            {
-                send(client_socket, "Invalid input", 14, 0);
-            }
-        }
-    }
-    else if (tokens[0] == "removeedge" && tokens.size() == 3)
+    else if (p.operation == "newedge")
     {
         if (graph == nullptr)
         {
@@ -167,20 +105,24 @@ void processClientRequest(char *buffer, int client_socket)
         }
         else
         {
-            try
-            {
-                int u = stoi(tokens[1]);
-                int v = stoi(tokens[2]);
-                graph->removeEdge(u, v);
-                send(client_socket, "Edge removed", 13, 0);
-            }
-            catch (const exception &e)
-            {
-                send(client_socket, "Invalid input", 14, 0);
-            }
+            graph->addEdge(p.v1, p.v2);
+            send(client_socket, "Edge added", 11, 0);
         }
     }
-    else if (tokens[0] == "exit")
+    else if (p.operation == "removeedge")
+
+    {
+        if (graph == nullptr)
+        {
+            send(client_socket, "Graph not created", 18, 0);
+        }
+        else
+        {
+            graph->removeEdge(p.v1, p.v2);
+            send(client_socket, "Edge removed", 13, 0);
+        }
+    }
+    else if (p.operation == "exit")
     {
         send(client_socket, "Connection terminated", 22, 0);
         close(client_socket);
@@ -188,17 +130,18 @@ void processClientRequest(char *buffer, int client_socket)
     }
     else
     {
+        cerr << "Invalid command" << endl;
         send(client_socket, "Invalid command", 16, 0);
     }
 }
 
 int main()
 {
-
     int server_socket, client_socket;
     struct sockaddr_in server_address, client_address;
     int addrlen = sizeof(server_address);
-    fd_set readfds, masterfds;
+    // fd_set masterfds;
+    // int maxfds;
 
     // Create a socket
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -207,13 +150,17 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    // zero out the struct
+    memset(&server_address, '0', sizeof(server_address));
+    memset(&client_address, '0', sizeof(client_address));
+
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = INADDR_ANY;
     server_address.sin_port = htons(PORT);
 
     // set socket options
     int opt = 1;
-    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)))
+    if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEPORT | SO_REUSEADDR, &opt, sizeof(opt)))
     {
         perror("Setsockopt failed");
         exit(EXIT_FAILURE);
@@ -227,53 +174,102 @@ int main()
     }
 
     // Listen for incoming connections
+    cout << "Listening on port " << PORT << endl;
     if (listen(server_socket, 3) < 0)
     {
         perror("Listen failed");
         exit(EXIT_FAILURE);
     }
 
-    FD_ZERO(&masterfds);
-    FD_SET(server_socket, &masterfds);
+    // FD_ZERO(&masterfds);
+    // FD_SET(server_socket, &masterfds);
+    // maxfds = server_socket;
+
+    cout << "Waiting for connections..." << endl;
 
     while (true)
     {
-        if (select(FD_SETSIZE, &masterfds, NULL, NULL, NULL) < 0)
+        if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&addrlen)) < 0)
         {
-            perror("Select failed");
+            perror("Accept failed");
             exit(EXIT_FAILURE);
         }
 
-        for (int i = 0; i < FD_SETSIZE; i++)
+        cout << "New client connected" << endl;
+
+        while (true)
         {
-            if (FD_ISSET(i, &masterfds))
+            // receive operation packet
+            char buffer[1024] = {0};
+
+            cout << "Waiting for operation packet" << endl;
+            int recv_val = recv(client_socket, buffer, 1024, 0);
+            if (recv_val < 0)
             {
-                if (i == server_socket) // New connection
-                {
-                    if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&addrlen)) < 0)
-                    {
-                        perror("Accept failed");
-                        exit(EXIT_FAILURE);
-                    }
-                    FD_SET(client_socket, &masterfds);
-                }
-                else
-                {
-                    char buffer[1024] = {0};
-                    int valread = read(i, buffer, 1024);
-                    if (valread <= 0)
-                    {
-                        close(i);
-                        FD_CLR(i, &masterfds);
-                    }
-                    else
-                    {
-                        processClientRequest(buffer, i);
-                    }
-                }
+                perror("Read failed");
+                exit(EXIT_FAILURE);
             }
+            else if (recv_val == 0)
+            {
+                cout << "Client disconnected" << endl;
+                close(client_socket);
+                break;
+            }
+            
+            op_Packet p;
+            deserializeOpPacket(buffer, p);
+
+            cout << "Received operation: " << p.operation << endl;
+            processClientRequest(p, client_socket);
         }
+
+        break;
     }
+
+    // while (true)
+    // {
+    //     cout << "Waiting for select" << endl;
+    //     if (select(maxfds + 1, &masterfds, NULL, NULL, NULL) < 0)
+    //     {
+    //         perror("Select failed");
+    //         exit(EXIT_FAILURE);
+    //     }
+    //     cout << "Select successful" << endl;
+
+    //     for (int i = 0; i <= maxfds; i++)
+    //     {
+    //         cout << "Checking file descriptor: " << i << endl;
+    //         if (FD_ISSET(i, &masterfds)) // Check if the file descriptor is set
+    //         {
+    //             if (i == server_socket) // New connection
+    //             {
+    //                 cout << "New connection" << endl;
+    //                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&addrlen)) < 0)
+    //                 {
+    //                     perror("Accept failed");
+    //                     exit(EXIT_FAILURE);
+    //                 }
+    //                 FD_SET(client_socket, &masterfds);
+    //                 cout << "New client connected" << endl;
+    //             }
+    //             else // Data from client
+    //             {
+    //                 char buffer[1024] = {0};
+    //                 int valread = read(i, buffer, 1024);
+    //                 if (valread <= 0)
+    //                 {
+    //                     close(i);
+    //                     FD_CLR(i, &masterfds);
+    //                 }
+    //                 else
+    //                 {
+    //                     cout << "Received: " << buffer << endl;
+    //                     processClientRequest(buffer, i);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
 
     close(server_socket);
     return 0;

@@ -49,13 +49,13 @@ void vectorList_kosaraju::init(int n , int m)
 
 vectorList_kosaraju::vectorList_kosaraju(int n,int m, vector<list<int>> &edges)
 {
-    if (m != edges.size() - 1)
+    if (m != (int)edges.size())
     {
-        cout << "Invalid input. The number of vertices should be equal to the size of the adjacency list." << endl;
+        cout << m << " " << edges.size() << endl;
+        cout << "Invalid input. The number of edges does not match the input." << endl;
         return;
     }
 
-    cout << "Creating a new graph..." << endl;
     graph.resize(n + 1);
     for (size_t i = 0; i < edges.size(); i++)
     {
@@ -200,7 +200,7 @@ void vectorList_kosaraju::printSCC()
 
 void vectorList_kosaraju::addEdge(int u, int v)
 {
-    if(u <= 0 || v <= 0 || u > this->graph.size() - 1 || v > this->graph.size() - 1 || u == v)
+    if(u <= 0 || v <= 0 || u > (int)(this->graph.size() - 1) || v > (int)(this->graph.size() - 1) || u == v)
     {
         cout << "Invalid input. Out of bounds." << endl;
         return;
@@ -221,7 +221,7 @@ void vectorList_kosaraju::addEdge(int u, int v)
 
 void vectorList_kosaraju::removeEdge(int u, int v)
 {
-    if(u <= 0 || v <= 0 || u > this->graph.size() - 1 || v > this->graph.size() - 1 || u == v)
+    if(u <= 0 || v <= 0 || u > (int)(this->graph.size() - 1) || v > (int)(this->graph.size() - 1) || u == v)
     {
         cout << "Invalid input. Out of bounds." << endl;
         return;

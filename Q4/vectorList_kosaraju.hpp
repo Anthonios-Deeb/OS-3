@@ -10,9 +10,7 @@ using namespace std;
 class vectorList_kosaraju
 {
 public:
-
-
-//vectorList_kosaraju(int n, int m);
+vectorList_kosaraju(int n, int m);
 vectorList_kosaraju(int n, int m, vector<list<int>> &adj);
 
 vector<list<int>> findSCC(); // Kosaraju's Algorithm
