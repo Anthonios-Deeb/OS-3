@@ -53,7 +53,7 @@ op_Packet parseData(string data)
         p.v2 = -1;
     }
     else
-    {   
+    {
         p.operation = "invalid";
         p.v1 = -1;
         p.v2 = -1;
@@ -133,8 +133,8 @@ int main()
     cout << "kosaraju" << endl;
     cout << "newedge u,v" << endl;
     cout << "removeedge u,v" << endl;
-    cout << "exit\n"
-         << endl;
+    cout << "exit\n" << endl;
+    cout << "Enter command: " << endl;
 
     int sent, valrecv;
     while (true)
@@ -142,15 +142,12 @@ int main()
         string data;
         getline(cin, data);
 
-        transform(data.begin(), data.end(), data.begin(), ::tolower);
-
+    
+        if (data == "")
+        {
+            continue;
+        }
         op_Packet p = parseData(data);
-
-        cout << "Operation: " << p.operation << endl;
-        cout << "v1: " << p.v1 << endl;
-        cout << "v2: " << p.v2 << endl;
-        cout << "packet size: " << sizeof(p) << endl
-             << endl;
 
         if (p.operation == "invalid")
         {
@@ -163,6 +160,11 @@ int main()
             close(clientSocket);
             exit(1);
         }
+
+        cout << "Operation: " << p.operation << endl;
+        cout << "v1: " << p.v1 << endl;
+        cout << "v2: " << p.v2 << endl;
+        cout << "packet size: " << sizeof(p) << endl;
 
         // if operation is newgraph, send the packet
         if (p.operation == "newgraph")
