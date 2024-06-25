@@ -1,9 +1,49 @@
 #include "vectorList_kosaraju.hpp"
 
-vectorList_kosaraju::vectorList_kosaraju(vector<list<int>> &a) : graph(a)
+vectorList_kosaraju::vectorList_kosaraju(int n,int m)
 {
-    edgeList = getEdgeList();
-    scc = findSCC();
+    cout << "Creating a new graph..." << endl;
+    init(n, m);
+    this->edgeList = getEdgeList();
+    this->scc = findSCC();
+}
+
+void vectorList_kosaraju::init(int n , int m)
+{
+    // Resize the graph
+    graph.resize(n + 1);
+
+    // Fill the adjacency list
+    for (int i = 0; i < m; i++)
+    {
+        int u, v;
+        cout << "Please enter the edge " << i + 1 << ". <u v>: " << endl;
+        cin >> u >> v;
+
+        // check if the input is valid and if the input is a number
+        while (u <= 0 || v <= 0 || u > n || v > n || u == v)
+        {
+            if (cin.fail())
+            {
+                cin.clear();
+                cin.ignore();
+            }
+            cout << "Invalid input. Please enter positive integers." << endl;
+            cin >> u >> v;
+        }
+
+        // check if the edge is already present
+        auto it = find(graph[u].begin(), graph[u].end(), v);
+        if (it == graph[u].end())
+        {
+            graph[u].push_back(v);
+        }
+        else
+        {
+            cout << "The edge is already present." << endl;
+            continue;
+        }
+    }
 }
 
 vector<list<int>> vectorList_kosaraju::getEdgeList()
@@ -57,9 +97,9 @@ vector<list<int>> vectorList_kosaraju::findSCC()
 
     // Stores whether a vertex is a part of any Strongly
     // Connected Component
-    vector<int> is_scc(graph.size() + 1, 0);
+    vector<int> is_scc(graph.size(), 0);
 
-    vector<list<int>> adj(graph.size() + 1);
+    vector<list<int>> adj(graph.size());
 
     for (size_t i = 0; i < edgeList.size(); i++)
     {
@@ -79,7 +119,7 @@ vector<list<int>> vectorList_kosaraju::findSCC()
             list<int> scc;
             scc.push_back(i);
 
-            for (size_t j = i + 1; j <= graph.size(); j++)
+            for (size_t j = i + 1; j < graph.size(); j++)
             {
                 // If there is a path from vertex i to
                 // vertex j and vice versa put vertex j
@@ -101,9 +141,9 @@ vector<list<int>> vectorList_kosaraju::findSCC()
 
 void vectorList_kosaraju::printGraph()
 {
-    for (size_t i = 0; i < graph.size(); i++)
+    for (size_t i = 1; i < graph.size(); i++)
     {
-        cout << "Vertex " << i + 1 << ": ";
+        cout << "Vertex " << i << ": ";
         for (auto it = graph[i].begin(); it != graph[i].end(); it++)
         {
             cout << *it << " ";
@@ -141,10 +181,18 @@ void vectorList_kosaraju::printSCC()
 
 void vectorList_kosaraju::addEdge(int u, int v)
 {
+    if(u <= 0 || v <= 0 || u > this->graph.size() - 1 || v > this->graph.size() - 1 || u == v)
+    {
+        cout << "Invalid input. Out of bounds." << endl;
+        return;
+    }
+
     auto it = find(graph[u].begin(), graph[u].end(), v);
     if (it == graph[u].end())
     {
         graph[u].push_back(v);
+        this->edgeList = getEdgeList();
+        this->scc = this->findSCC();
     }
     else
     {
@@ -154,10 +202,18 @@ void vectorList_kosaraju::addEdge(int u, int v)
 
 void vectorList_kosaraju::removeEdge(int u, int v)
 {
+    if(u <= 0 || v <= 0 || u > this->graph.size() - 1 || v > this->graph.size() - 1 || u == v)
+    {
+        cout << "Invalid input. Out of bounds." << endl;
+        return;
+    }
+
     auto it = find(graph[u].begin(), graph[u].end(), v);
     if (it != graph[u].end())
     {
         graph[u].remove(v);
+        this->edgeList = getEdgeList();
+        this->scc = this->findSCC();
     }
     else
     {

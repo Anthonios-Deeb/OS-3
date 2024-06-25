@@ -73,7 +73,7 @@ int main()
         }
     }
 
-   // printAdjacencyList(adjMatrix);
+    printAdjacencyList(adjMatrix);
 
     vector<list<int>> edges = getEdgeList(adjMatrix);
 

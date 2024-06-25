@@ -1,69 +1,112 @@
 #include <iostream>
 #include <vector>
 #include <list>
+#include <string>
 #include "vectorList_kosaraju.hpp"
 
 using namespace std;
 
+bool checkCommand(string command)
+{
+    if (command.find(",") == string::npos)
+    {
+        cout << "Invalid command. Please try again." << endl;
+        return false;
+    }
+    else
+    {
+        int pos = command.find(",");
+        // i need to check if before the comma and after the comma are numbers
+        // if they are not numbers then the command is invalid
+        // if they are numbers then I will convert them to integers
+        // and then I will create the graph
+        if (command.substr(0, pos).find_first_not_of("0123456789") != string::npos || command.substr(pos + 1).find_first_not_of("0123456789") != string::npos)
+        {
+            cout << "Invalid command. Please try again." << endl;
+            return false;
+        }
+    }
+    return true;
+}
 
 int main()
 {
-    int n, m;
-    cout << "Please enter the number of nodes and the number of edges: " << endl;
-    cin >> n >> m;
+    vectorList_kosaraju *graph = nullptr;
+    cout << "Welcome to the Kosaraju's Algorithm !!" << endl;
+    cout << "to start using the program, you must initialize the graph. To do that start by writing NewGraph n,m" << endl;
 
-    // check if the input is valid and if the input is a number
-    while (n < 1 || m < 1 || m > n * (n - 1))
+    string command;
+
+    while (true)
     {
-        if (cin.fail())
+        cin >> command;
+        transform(command.begin(), command.end(), command.begin(), ::tolower);
+
+        if (command == "newgraph")
         {
-            cin.clear();
-            cin.ignore();
-        }
-        cout << "Invalid input. Please enter positive integers." << endl;
-        cin >> n >> m;
-    }
+            cin >> command;
 
-    // Create an adjacency list
-    vector<list<int>> adjMatrix(n + 1);
-
-    // Fill the adjacency list
-    for (int i = 0; i < m; i++)
-    {
-        int u, v;
-        cout << "Please enter the edge " << i + 1 << ". <u v>: " << endl;
-        cin >> u >> v;
-
-        // check if the input is valid and if the input is a number
-        while (u <= 0 || v <= 0 || u > n || v > n || u == v)
-        {
-            if (cin.fail())
+            if (checkCommand(command))
             {
-                cin.clear();
-                cin.ignore();
+                int n, m;
+                int pos = command.find(",");
+                n = stoi(command.substr(0, pos));
+                m = stoi(command.substr(pos + 1));
+                graph = new vectorList_kosaraju(n, m);
             }
-            cout << "Invalid input. Please enter positive integers." << endl;
-            cin >> u >> v;
         }
-
-        // check if the edge is already present
-        auto it = find(adjMatrix[u].begin(), adjMatrix[u].end(), v);
-        if (it == adjMatrix[u].end())
+        else if (command == "kosaraju")
         {
-            adjMatrix[u].push_back(v);
+            cout << "Calculating the Strongly Connected Components using Kosaraju's Algorithm..." << endl;
+            graph->printSCC();
+        }
+        else if (command == "printgraph")
+        {
+            graph->printGraph();
+        }
+        else if (command == "newedge")
+        {
+            cin >> command;
+            if (checkCommand(command))
+            {
+                int u, v;
+                int pos = command.find(",");
+                u = stoi(command.substr(0, pos));
+                v = stoi(command.substr(pos + 1));
+                graph->addEdge(u, v);
+            }
+        }
+        else if (command == "removeedge")
+        {
+            cin >> command;
+            if (checkCommand(command))
+            {
+                int u, v;
+                int pos = command.find(",");
+                u = stoi(command.substr(0, pos));
+                v = stoi(command.substr(pos + 1));
+                graph->removeEdge(u, v);
+            }
+        }
+        else if (command == "exit")
+        {
+            break;
         }
         else
         {
-            cout << "The edge is already present." << endl;
-            continue;
+            cout << "Invalid command. Please try again." << endl;
         }
-    }
 
-    vectorList_kosaraju vlk = vectorList_kosaraju(adjMatrix);
-    
-    vlk.printEdgeList();
-    
-    vlk.printSCC();
+        cout << "--------------------------------------------" << endl;
+        cout << "the commands are: " << endl;
+        cout << "NewGraph n,m" << endl;
+        cout << "Kosaraju" << endl;
+        cout << "PrintGraph" << endl;
+        cout << "NewEdge u,v" << endl;
+        cout << "RemoveEdge u,v" << endl;
+        cout << "Exit" << endl;
+        cout << "Please enter a command: ";
+    }
 
     return 0;
 }
