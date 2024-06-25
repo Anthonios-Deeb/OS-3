@@ -2,6 +2,8 @@
 #define VECTORLIST_KOSARAJU_HPP
 #include <vector>
 #include <list>
+#include <iostream>
+#include <algorithm>
 using namespace std;
 
 bool dfs(int curr, int des, vector<list<int>> &adj, vector<int> &vis);

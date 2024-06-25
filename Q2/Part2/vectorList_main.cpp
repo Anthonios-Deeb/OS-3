@@ -1,6 +1,3 @@
-#include <iostream>
-#include <vector>
-#include <list>
 #include "vectorList_kosaraju.hpp"
 
 using namespace std;
