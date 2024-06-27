@@ -62,7 +62,6 @@ vectorList_kosaraju::vectorList_kosaraju(int n, int m, vector<list<int>> &edges)
         graph[edges[i].front()].push_back(edges[i].back());
     }
     this->edgeList = getEdgeList();
-    this->scc = findSCC();
 }
 
 vector<list<int>> vectorList_kosaraju::getEdgeList()
@@ -108,7 +107,7 @@ bool vectorList_kosaraju::isPath(int src, int des, vector<list<int>> &adj)
     return dfs(src, des, adj, vis);
 }
 
-vector<list<int>> vectorList_kosaraju::findSCC()
+void vectorList_kosaraju::findSCC()
 {
     // Stores all the strongly connected components.
     vector<list<int>> ans;
@@ -154,7 +153,7 @@ vector<list<int>> vectorList_kosaraju::findSCC()
             ans.push_back(scc);
         }
     }
-    return ans;
+    this->scc = ans;
 }
 
 void vectorList_kosaraju::printGraph()
@@ -210,7 +209,7 @@ int vectorList_kosaraju::addEdge(int u, int v)
     {
         graph[u].push_back(v);
         this->edgeList = getEdgeList();
-        this->scc = this->findSCC();
+        findSCC();
         return 1;
     }
     else
@@ -233,7 +232,7 @@ int vectorList_kosaraju::removeEdge(int u, int v)
     {
         graph[u].remove(v);
         this->edgeList = getEdgeList();
-        this->scc = this->findSCC();
+        findSCC();
         return 1;
     }
     else
@@ -241,4 +240,29 @@ int vectorList_kosaraju::removeEdge(int u, int v)
         cout << "The edge is does not exist" << endl;
         return 0;
     }
+}
+
+vector<list<int>> vectorList_kosaraju::getScc()
+{
+    return this->scc;
+}
+
+bool vectorList_kosaraju::calcIfHasMajority()
+{
+    for (auto &list : this->scc)
+    {
+        if (list.size() > (graph.size() - 1) / 2)
+        {
+            this->hasMajority = true;
+            cout << "The graph has a majority." << endl;
+            return true;
+        }
+    }
+    this->hasMajority = false;
+    return false;
+}
+
+bool vectorList_kosaraju::getHasMajority()
+{
+    return this->hasMajority;
 }

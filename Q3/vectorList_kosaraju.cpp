@@ -1,6 +1,6 @@
 #include "vectorList_kosaraju.hpp"
 
-vectorList_kosaraju::vectorList_kosaraju(int n,int m)
+vectorList_kosaraju::vectorList_kosaraju(int n, int m)
 {
     cout << "Creating a new graph..." << endl;
     init(n, m);
@@ -8,7 +8,7 @@ vectorList_kosaraju::vectorList_kosaraju(int n,int m)
     this->scc = findSCC();
 }
 
-void vectorList_kosaraju::init(int n , int m)
+void vectorList_kosaraju::init(int n, int m)
 {
     // Resize the graph
     graph.resize(n + 1);
@@ -61,7 +61,6 @@ vector<list<int>> vectorList_kosaraju::getEdgeList()
     }
     return ans;
 }
-
 
 bool vectorList_kosaraju::dfs(int curr, int des, vector<list<int>> &adj, vector<int> &vis)
 {
@@ -181,7 +180,7 @@ void vectorList_kosaraju::printSCC()
 
 void vectorList_kosaraju::addEdge(int u, int v)
 {
-    if(u <= 0 || v <= 0 || u > this->graph.size() - 1 || v > this->graph.size() - 1 || u == v)
+    if (u <= 0 || v <= 0 || u > (int)(this->graph.size() - 1) || v > (int)(this->graph.size() - 1) || u == v)
     {
         cout << "Invalid input. Out of bounds." << endl;
         return;
@@ -202,7 +201,7 @@ void vectorList_kosaraju::addEdge(int u, int v)
 
 void vectorList_kosaraju::removeEdge(int u, int v)
 {
-    if(u <= 0 || v <= 0 || u > this->graph.size() - 1 || v > this->graph.size() - 1 || u == v)
+    if (u <= 0 || v <= 0 || u > (int)(this->graph.size() - 1) || v > (int)(this->graph.size() - 1) || u == v)
     {
         cout << "Invalid input. Out of bounds." << endl;
         return;

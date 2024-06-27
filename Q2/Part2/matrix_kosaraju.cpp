@@ -8,7 +8,8 @@ vector<vector<int>> getEdgeList(vector<vector<int>> &adj)
         for (size_t j = 1; j < adj[i].size(); j++)
         {
             vector<int> edge;
-            if (adj[i][j] != 0) {
+            if (adj[i][j] != 0)
+            {
                 edge.push_back(i);
                 edge.push_back(j);
                 edgeList.push_back(edge);

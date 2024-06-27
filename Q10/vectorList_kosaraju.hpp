@@ -13,8 +13,14 @@ public:
     vectorList_kosaraju(int n, int m);
     vectorList_kosaraju(int n, int m, vector<list<int>> &adj);
 
-    vector<list<int>> findSCC();     // Kosaraju's Algorithm
+    void findSCC();                  // Kosaraju's Algorithm
     vector<list<int>> getEdgeList(); // Get the edge list
+    vector<list<int>> getScc();      // Get the SCC
+
+    bool getHasMajority();           // Get if there is a majority SCC
+
+    // does one connected component have more than half of the vertices
+    bool calcIfHasMajority();
 
     // prints
     void printGraph();
@@ -28,6 +34,7 @@ private:
     vector<list<int>> graph;
     vector<list<int>> scc;
     vector<list<int>> edgeList;
+    bool hasMajority = false;
 
     void init(int n, int m);
 

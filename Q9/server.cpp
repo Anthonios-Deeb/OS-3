@@ -3,11 +3,13 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/select.h>
+#include <thread>
+#include <mutex>
 #include <sstream>
 #include <cstring>
 #include "vectorList_kosaraju.hpp"
 #include "packets.hpp"
+#include "reactor_proactor.hpp"
 
 #define PORT 9034
 
@@ -15,6 +17,8 @@ using namespace std;
 
 // graph
 vectorList_kosaraju *graph = nullptr;
+pthread_mutex_t clientMutex;
+
 
 vector<string> splitString(const string &input)
 {
@@ -57,6 +61,7 @@ void processClientRequest(op_Packet p, int client_socket)
 {
     if (p.operation == "newgraph")
     {
+        pthread_mutex_lock(&clientMutex);
         string message = "Creating graph with " + to_string(p.v1) + " nodes and " + to_string(p.v2) + " edges";
         cout << message << endl;
         send(client_socket, message.c_str(), message.size() + 1, 0);
@@ -65,7 +70,9 @@ void processClientRequest(op_Packet p, int client_socket)
         if (recv(client_socket, buffer, 1024, 0) <= 0)
         {
             perror("Read failed");
-            exit(EXIT_FAILURE);
+            close(client_socket);
+            pthread_mutex_unlock(&clientMutex);
+            return;
         }
         edges_Packet edges;
         deserializeEdgesPacket(buffer, edges);
@@ -74,9 +81,11 @@ void processClientRequest(op_Packet p, int client_socket)
         graph = new vectorList_kosaraju(p.v1, p.v2, edges.edges);
         send(client_socket, "Graph created", 15, 0);
         cout << "Graph created" << endl;
+        pthread_mutex_unlock(&clientMutex);
     }
     else if (p.operation == "kosaraju")
     {
+        pthread_mutex_lock(&clientMutex);
         if (graph == nullptr)
         {
             send(client_socket, "Graph not created", 18, 0);
@@ -95,43 +104,104 @@ void processClientRequest(op_Packet p, int client_socket)
             }
             send(client_socket, result.c_str(), result.size() + 1, 0);
         }
+        pthread_mutex_unlock(&clientMutex);
     }
     else if (p.operation == "newedge")
     {
+        pthread_mutex_lock(&clientMutex);
         if (graph == nullptr)
         {
             send(client_socket, "Graph not created", 18, 0);
         }
         else
         {
-            graph->addEdge(p.v1, p.v2);
-            send(client_socket, "Edge added", 11, 0);
+            int result = graph->addEdge(p.v1, p.v2);
+            if (result == 1)
+            {
+                send(client_socket, "Edge added", 11, 0);
+            }
+            else if (result == 0)
+            {
+                send(client_socket, "Edge already exists", 20, 0);
+            }
+            else
+            {
+                send(client_socket, "Invalid node", 13, 0);
+            }
         }
+        pthread_mutex_unlock(&clientMutex);
     }
     else if (p.operation == "removeedge")
-
     {
+        pthread_mutex_lock(&clientMutex);
         if (graph == nullptr)
         {
             send(client_socket, "Graph not created", 18, 0);
         }
         else
         {
-            graph->removeEdge(p.v1, p.v2);
-            send(client_socket, "Edge removed", 13, 0);
+            int result = graph->removeEdge(p.v1, p.v2);
+            if (result == 1)
+            {
+                send(client_socket, "Edge removed", 13, 0);
+            }
+            else if (result == 0)
+            {
+                send(client_socket, "Edge does not exist", 20, 0);
+            }
+            else
+            {
+                send(client_socket, "Invalid node", 13, 0);
+            }
         }
+        pthread_mutex_unlock(&clientMutex);
     }
     else if (p.operation == "exit")
     {
         send(client_socket, "Connection terminated", 22, 0);
         close(client_socket);
-        exit(1);
+        pthread_mutex_unlock(&clientMutex);
+        return;
     }
     else
     {
         cerr << "Invalid command" << endl;
         send(client_socket, "Invalid command", 16, 0);
+        pthread_mutex_unlock(&clientMutex);
     }
+}
+
+void handleClient(int client_socket)
+{
+    char buffer[1024] = {0};
+    while (true)
+    {
+        int recv_val = recv(client_socket, buffer, 1024, 0);
+        if (recv_val < 0)
+        {
+            perror("Read failed");
+            close(client_socket);
+            return;
+        }
+        else if (recv_val == 0)
+        {
+            cout << "Client disconnected" << endl;
+            close(client_socket);
+            return;
+        }
+        else
+        {
+            op_Packet p;
+            deserializeOpPacket(buffer, p);
+            processClientRequest(p, client_socket);
+        }
+    }
+}
+
+// Proactor function
+void* proactorThreadFunc(int client_socket) {
+    handleClient(client_socket);
+    return nullptr;
 }
 
 int main()
@@ -139,8 +209,6 @@ int main()
     int server_socket, client_socket;
     struct sockaddr_in server_address, client_address;
     int addrlen = sizeof(server_address);
-    fd_set readfds;
-    int maxfds;
 
     // Create a socket
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == 0)
@@ -180,65 +248,30 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    FD_ZERO(&readfds);
-    FD_SET(server_socket, &readfds);
-    maxfds = server_socket;
-
     cout << "Waiting for connections..." << endl;
 
-    while (true)
-    {
-        fd_set temp_fds = readfds;
-        if (select(maxfds + 1, &temp_fds, NULL, NULL, NULL) < 0)
-        {
-            perror("Select failed");
-            exit(EXIT_FAILURE);
+    // Initialize mutex
+    pthread_mutex_init(&clientMutex, nullptr);
+
+    // Accept incoming connections
+    while (true) {
+        if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t*)&addrlen)) < 0) {
+            perror("Accept failed");
+            continue;
         }
 
-        for (int i = 0; i <= maxfds; i++)
-        {
-            if (FD_ISSET(i, &temp_fds)) // Check if the file descriptor is set
-            {
-                if (i == server_socket) // New connection
-                {
-                    if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&addrlen)) < 0)
-                    {
-                        perror("Accept failed");
-                        exit(EXIT_FAILURE);
-                    }
-                    FD_SET(client_socket, &readfds);
-                    if (client_socket > maxfds)
-                    {
-                        maxfds = client_socket;
-                    }
-                    cout << "New client connected" << endl;
-                }
-                else // Data from client
-                {
-                    // receive operation packet
-                    char buffer[1024] = {0};
-                    int recv_val = recv(i, buffer, 1024, 0);
-                    if (recv_val < 0)
-                    {
-                        perror("Read failed");
-                        close(i);
-                        FD_CLR(i, &readfds);
-                    }
-                    else if (recv_val == 0)
-                    {
-                        cout << "Client disconnected" << endl;
-                        close(i);
-                        FD_CLR(i, &readfds);
-                    }
-                    else
-                    {
-                        op_Packet p;
-                        deserializeOpPacket(buffer, p);
-                        processClientRequest(p, i);
-                    }
-                }
-            }
+        cout << "New connection" << endl;
+
+        // Start a new proactor thread to handle the client connection
+        pthread_t tid = startProactor(client_socket, proactorThreadFunc);
+        if (tid == 0) {
+            perror("Failed to create proactor thread");
+            close(client_socket);
+            continue;
         }
+
+        // Detach the thread
+        pthread_detach(tid);
     }
 
     close(server_socket);

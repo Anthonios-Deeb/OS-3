@@ -202,8 +202,7 @@ edges_Packet createEdges(int n, int m)
         string edge;
         cin >> edge;
 
-        if (!parceEdge(edge, u, v))
-        {
+        if (!parceEdge(edge, u, v)){
             cout << "Invalid edge" << endl;
             i--;
             continue;

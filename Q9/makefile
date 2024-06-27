@@ -2,7 +2,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic -O3
 
 # Source files
-SERVER_SRCS = server.cpp vectorList_kosaraju.cpp packets.cpp
+SERVER_SRCS = server.cpp vectorList_kosaraju.cpp packets.cpp reactor_proactor.cpp
 CLIENT_SRCS = client.cpp packets.cpp
 
 # Object files

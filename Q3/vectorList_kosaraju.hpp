@@ -10,31 +10,28 @@ using namespace std;
 class vectorList_kosaraju
 {
 public:
+    vectorList_kosaraju(int n, int m);
 
-vectorList_kosaraju(int n, int m);
+    vector<list<int>> findSCC();     // Kosaraju's Algorithm
+    vector<list<int>> getEdgeList(); // Get the edge list
 
+    // prints
+    void printGraph();
+    void printEdgeList();
+    void printSCC();
 
-vector<list<int>> findSCC(); // Kosaraju's Algorithm
-vector<list<int>> getEdgeList(); // Get the edge list
-
-//prints
-void printGraph();
-void printEdgeList();
-void printSCC();
-
-void addEdge(int u, int v);
-void removeEdge(int u, int v);
-
+    void addEdge(int u, int v);
+    void removeEdge(int u, int v);
 
 private:
-vector<list<int>> graph;
-vector<list<int>> scc;
-vector<list<int>> edgeList;
+    vector<list<int>> graph;
+    vector<list<int>> scc;
+    vector<list<int>> edgeList;
 
-void init(int n, int m);
+    void init(int n, int m);
 
-bool dfs(int curr, int des, vector<list<int>> &adj, vector<int> &vis);
-bool isPath(int src, int des, vector<list<int>> &adj);
+    bool dfs(int curr, int des, vector<list<int>> &adj, vector<int> &vis);
+    bool isPath(int src, int des, vector<list<int>> &adj);
 };
 
 #endif // VECTORLIST_KOSARAJU_HPP

@@ -1,10 +1,5 @@
-#include "reactor.hpp"
-#include <stdexcept>
-#include <unordered_map>
-#include <vector>
-#include <iostream>
-#include <poll.h>
-#include <algorithm>
+#include "reactor_proactor.hpp"
+
 
 ReactorImpl::ReactorImpl(){};
 
@@ -51,6 +46,33 @@ void ReactorImpl::run()
             }
         }
     }
+}
+
+// Function to start a new proactor and return pthread ID
+pthread_t startProactor(int sockfd, proactorFunc threadFunc) {
+    pthread_t proactorThread;
+    ProactorThreadArgs *args = new ProactorThreadArgs{sockfd, threadFunc};
+
+    if (pthread_create(&proactorThread, nullptr, [](void *arg) -> void* {
+        ProactorThreadArgs *args = static_cast<ProactorThreadArgs*>(arg);
+        args->threadFunc(args->sockfd);
+        delete args;
+        return nullptr;
+    }, args) != 0) {
+        perror("pthread_create failed");
+        delete args;
+        return 0;
+    }
+
+    return proactorThread;
+}
+
+// Function to stop proactor by pthread ID
+int stopProactor(pthread_t tid)
+{
+    pthread_cancel(tid);
+    pthread_join(tid, nullptr);
+    return 0; // Success
 }
 
 // Function to start a new reactor and return pointer to it
